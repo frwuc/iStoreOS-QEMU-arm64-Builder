@@ -133,9 +133,21 @@ jobs:
 
       - name: Copy Firmware to workspace
         run: |
+          BIN_DIR="${{ github.workspace }}/imagebuilder/bin/targets/armsr/armv8"
           mkdir -p ${{ github.workspace }}/output
-          cp ${{ github.workspace }}/imagebuilder/bin/targets/armsr/armv8/*.qcow2 ${{ github.workspace }}/output/ 2>/dev/null || true
-          cp ${{ github.workspace }}/imagebuilder/bin/targets/armsr/armv8/*.vmdk ${{ github.workspace }}/output/ 2>/dev/null || true
+          # Copy vmdk if exists
+          cp "$BIN_DIR"/*.vmdk ${{ github.workspace }}/output/ 2>/dev/null || true
+          # Convert vmdk to qcow2 if qcow2 not produced natively
+          if ls "$BIN_DIR"/*.qcow2 1>/dev/null 2>&1; then
+            cp "$BIN_DIR"/*.qcow2 ${{ github.workspace }}/output/ 2>/dev/null || true
+          else
+            VMDK_FILE=$(ls "$BIN_DIR"/*.vmdk 2>/dev/null | head -1)
+            if [ -n "$VMDK_FILE" ]; then
+              BASENAME=$(basename "$VMDK_FILE" .vmdk)
+              echo "qcow2 not built natively, converting $VMDK_FILE to qcow2..."
+              qemu-img convert -f vmdk -O qcow2 "$VMDK_FILE" "${{ github.workspace }}/output/${BASENAME}.qcow2"
+            fi
+          fi
           echo "Build artifacts:"
           ls -lh ${{ github.workspace }}/output/
 
