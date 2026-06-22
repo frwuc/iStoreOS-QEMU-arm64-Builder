@@ -30,7 +30,7 @@ cat files/etc/config/pppoe-settings
 echo "$(date '+%Y-%m-%d %H:%M:%S') - 开始构建iStoreOS QEMU-arm64固件..."
 
 # 定义所需安装的包列表 下列插件你都可以自行删减
-PACKAGES=""
+PACKAGES="-dnsmasq"
 PACKAGES="$PACKAGES curl"
 PACKAGES="$PACKAGES luci-i18n-diskman-zh-cn"
 PACKAGES="$PACKAGES luci-i18n-package-manager-zh-cn"
