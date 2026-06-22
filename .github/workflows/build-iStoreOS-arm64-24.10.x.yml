@@ -1,0 +1,136 @@
+name: Build iStoreOS 24.10.x QEMU-armsr-armv8
+# 基于iStoreOS官方ImageBuilder构建QEMU ARM64虚拟机固件
+# 产出格式为qcow2/vmdk,适合所有ARM64平台的虚拟机
+on:
+  workflow_dispatch:
+    inputs:
+      istoreos_version:
+        description: "选择iStoreOS版本"
+        required: false
+        default: "24.10.7"
+        type: choice
+        options:
+          - 24.10.7
+          - 24.10.6
+          - 24.10.5
+          - 24.10.4
+          - 24.10.3
+          - 24.10.2
+          - 24.10.1
+      profile:
+        type: choice
+        description: |
+          可用于ARM64虚拟机(比如macOS下的UTM虚拟机 比如斐讯N1/R3S/R5S等arm64系统的PVE虚拟机)
+        options:
+          - generic
+        required: true
+        default: 'generic'
+      rootfs_partsize:
+        description: '设置软件包大小 单位(MB) 最大数值10240'
+        required: true
+        default: '2048'
+      enable_store:
+        description: "集成 store 商店"
+        required: false
+        type: boolean
+        default: true
+      enable_pppoe:
+        description: "是否配置PPPoE拨号信息?"
+        required: true
+        default: 'no'
+        type: choice
+        options:
+        - 'yes'
+        - 'no'
+      pppoe_account:
+        description: "宽带账号 (若启用PPPoE)"
+        required: false
+      pppoe_password:
+        description: "宽带密码 (若启用PPPoE)"
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set executable permissions
+        run: chmod +x ${{ github.workspace }}/armsr-armv8/build-istoreos.sh
+
+      - name: Download iStoreOS ImageBuilder
+        run: |
+          IB_URL="https://fw.koolcenter.com/iStoreOS/ib/armsr/istoreos-imagebuilder-armsr-armv8.Linux-x86_64.tar.zst"
+          echo "Downloading iStoreOS ImageBuilder from $IB_URL"
+          wget -q "$IB_URL" -O imagebuilder.tar.zst
+          echo "Extracting ImageBuilder..."
+          tar --zstd -xf imagebuilder.tar.zst
+          rm -f imagebuilder.tar.zst
+          mv istoreos-imagebuilder-* imagebuilder
+          echo "iStoreOS ImageBuilder ready"
+          ls -lh imagebuilder/
+
+      - name: iStoreOS store already built-in
+        run: |
+          echo "✅ iStoreOS 默认自带商店（luci-app-store），无需额外添加"
+
+      - name: Validate PPPoE Inputs
+        run: |
+          if [[ "${{ inputs.enable_pppoe }}" == "yes" ]]; then
+            if [[ -z "${{ inputs.pppoe_account }}" || -z "${{ inputs.pppoe_password }}" ]]; then
+              echo "Error: PPPoE account and password must be provided when PPPoE is enabled!"
+              exit 1
+            fi
+          fi
+
+      - name: Copy UCI defaults and config files
+        run: |
+          mkdir -p ${{ github.workspace }}/imagebuilder/files
+          if [ -d "${{ github.workspace }}/files" ]; then
+            cp -r ${{ github.workspace }}/files/* ${{ github.workspace }}/imagebuilder/files/ 2>/dev/null || true
+          fi
+          cp ${{ github.workspace }}/armsr-armv8/istoreos.config ${{ github.workspace }}/imagebuilder/.config
+
+      - name: Building iStoreOS armsr-armv8 QEMU 24.10.x
+        run: |
+          profiles="${{ github.event.inputs.profile }}"
+          rootfs_partsize="${{ github.event.inputs.rootfs_partsize }}"
+
+          IFS=',' read -r -a profile_array <<< "$profiles"
+
+          for profile in "${profile_array[@]}"; do
+            echo "Building for profile: $profile"
+            export PROFILE=$profile
+            export ROOTFS_PARTSIZE=$rootfs_partsize
+            export ENABLE_PPPOE=${{ inputs.enable_pppoe }}
+            export PPPOE_ACCOUNT=${{ inputs.pppoe_account }}
+            export PPPOE_PASSWORD=${{ inputs.pppoe_password }}
+            export WORKSPACE=${{ github.workspace }}
+            bash ${{ github.workspace }}/armsr-armv8/build-istoreos.sh
+          done
+
+      - name: Copy Firmware to workspace
+        run: |
+          mkdir -p ${{ github.workspace }}/output
+          cp ${{ github.workspace }}/imagebuilder/bin/targets/armsr/armv8/*.qcow2 ${{ github.workspace }}/output/ 2>/dev/null || true
+          cp ${{ github.workspace }}/imagebuilder/bin/targets/armsr/armv8/*.vmdk ${{ github.workspace }}/output/ 2>/dev/null || true
+          echo "Build artifacts:"
+          ls -lh ${{ github.workspace }}/output/
+
+      - name: Upload iStoreOS as release assets
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: iStoreOS-QEMU
+          name: iStoreOS-QEMU-armsr-armv8-24.10.x
+          body_path: ${{ github.workspace }}/armsr-armv8/istoreos-info.md
+          files: |
+            ${{ github.workspace }}/output/*.qcow2
+            ${{ github.workspace }}/output/*.vmdk
+          token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
