@@ -34,6 +34,10 @@ on:
         required: false
         type: boolean
         default: true
+      lan_ipaddr:
+        description: "LAN口IP地址 (留空自动检测网关网段)"
+        required: false
+        default: ''
       enable_pppoe:
         description: "是否配置PPPoE拨号信息?"
         required: true
@@ -124,6 +128,7 @@ jobs:
             echo "Building for profile: $profile"
             export PROFILE=$profile
             export ROOTFS_PARTSIZE=$rootfs_partsize
+            export LAN_IPADDR=${{ inputs.lan_ipaddr }}
             export ENABLE_PPPOE=${{ inputs.enable_pppoe }}
             export PPPOE_ACCOUNT=${{ inputs.pppoe_account }}
             export PPPOE_PASSWORD=${{ inputs.pppoe_password }}

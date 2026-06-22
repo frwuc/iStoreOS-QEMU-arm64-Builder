@@ -1,7 +1,7 @@
 [![Github](https://img.shields.io/badge/Release文件可在国内加速站下载-FC7C0D?logo=github&logoColor=fff&labelColor=000&style=for-the-badge)](https://wkdaily.cpolar.top/archives/1)
 #### 此固件为iStoreOS ARM64虚拟机专用
 #### 格式为qcow2/vmdk qcow2可在虚拟机里自由扩展大小 无需添加另一块虚拟硬盘
-#### 固件地址 `192.168.100.1`
+#### 固件地址 首次启动自动检测：若WAN口通过DHCP获取到IP，LAN口IP自动设为网关网段的.100；否则默认为 `192.168.100.1`
 #### 用户名 `root` 密码：无
 #### 默认软件包大小 2GB
 

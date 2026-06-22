@@ -26,6 +26,15 @@ EOF
 echo "cat pppoe-settings"
 cat files/etc/config/pppoe-settings
 
+# 写入 LAN IP 配置，供 99-custom.sh 读取
+cat << EOF > files/etc/config/lan-settings
+LAN_IPADDR="${LAN_IPADDR}"
+EOF
+echo "LAN_IPADDR set to: ${LAN_IPADDR:-<auto-detect>}"
+
+# 确保 uci-defaults 脚本可执行
+chmod +x files/etc/uci-defaults/99-custom.sh 2>/dev/null || true
+
 # 输出调试信息
 echo "$(date '+%Y-%m-%d %H:%M:%S') - 开始构建iStoreOS QEMU-arm64固件..."
 
