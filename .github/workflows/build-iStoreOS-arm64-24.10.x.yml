@@ -94,7 +94,7 @@ jobs:
           if [ -d "${{ github.workspace }}/files" ]; then
             cp -r ${{ github.workspace }}/files/* ${{ github.workspace }}/imagebuilder/files/ 2>/dev/null || true
           fi
-          cp ${{ github.workspace }}/armsr-armv8/istoreos.config ${{ github.workspace }}/imagebuilder/.config
+          cat ${{ github.workspace }}/armsr-armv8/istoreos.config >> ${{ github.workspace }}/imagebuilder/.config
 
       - name: Building iStoreOS armsr-armv8 QEMU 24.10.x
         run: |
