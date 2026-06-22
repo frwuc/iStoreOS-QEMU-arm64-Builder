@@ -108,20 +108,9 @@ sudo virt-install \
   --noautoconsole
 ```
 
-#### 4. 配置 LAN 口 IP
+#### 4. 访问管理界面
 
-官方镜像默认 LAN 为 `192.168.100.1`，如果与你的网络不在同一网段，通过串口修改：
-
-```bash
-# 查看 VM 串口设备
-virsh qemu-monitor-command istoreos --hmp 'info chardev' | grep serial
-
-# 发送命令（假设串口为 /dev/pts/0）
-echo 'uci set network.lan.ipaddr=192.168.8.100' | sudo tee /dev/pts/0
-echo 'uci set network.lan.netmask=255.255.255.0' | sudo tee /dev/pts/0
-echo 'uci commit network' | sudo tee /dev/pts/0
-echo 'ifconfig br-lan 192.168.8.100 netmask 255.255.255.0' | sudo tee /dev/pts/0
-```
+官方镜像默认 LAN 为 `192.168.100.1`，浏览器访问 `http://192.168.100.1`，用户名 `root`，密码为空。
 
 ---
 
