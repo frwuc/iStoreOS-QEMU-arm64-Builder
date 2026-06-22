@@ -34,9 +34,9 @@ echo "$(date '+%Y-%m-%d %H:%M:%S') - 开始构建iStoreOS QEMU-arm64固件..."
 # 此处只添加默认镜像中没有的包
 PACKAGES="-ppp-mod-pppoe"
 PACKAGES="$PACKAGES curl"
-PACKAGES="$PACKAGES luci-i18n-filebrowser-go-zh-cn"
+
 PACKAGES="$PACKAGES openssh-sftp-server"
-PACKAGES="$PACKAGES luci-i18n-filemanager-zh-cn"
+
 # ======== shell/custom-packages.sh ========
 # 合并第三方插件
 PACKAGES="$PACKAGES $CUSTOM_PACKAGES"
