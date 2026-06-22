@@ -29,23 +29,15 @@ cat files/etc/config/pppoe-settings
 # 输出调试信息
 echo "$(date '+%Y-%m-%d %H:%M:%S') - 开始构建iStoreOS QEMU-arm64固件..."
 
-# 定义所需安装的包列表 下列插件你都可以自行删减
-PACKAGES="-dnsmasq -ppp"  # 排除 dnsmasq 和 ppp，避免与 dnsmasq-full/ppp-mod-pppoe 冲突
+# 排除 ppp-mod-pppoe（默认包含但依赖 ppp，排除 ppp 后依赖不满足导致构建失败）
+# iStoreOS 24.10.7 默认已包含：argon主题、docker管理、ttyd、diskman、firewall等
+# 此处只添加默认镜像中没有的包
+PACKAGES="-ppp-mod-pppoe"
 PACKAGES="$PACKAGES curl"
-PACKAGES="$PACKAGES luci-i18n-diskman-zh-cn"
-PACKAGES="$PACKAGES luci-i18n-package-manager-zh-cn"
-PACKAGES="$PACKAGES luci-i18n-firewall-zh-cn"
-# 服务——FileBrowser 用户名admin 密码admin
 PACKAGES="$PACKAGES luci-i18n-filebrowser-go-zh-cn"
-PACKAGES="$PACKAGES luci-theme-argon"
-PACKAGES="$PACKAGES luci-app-argon-config"
-PACKAGES="$PACKAGES luci-i18n-argon-config-zh-cn"
-PACKAGES="$PACKAGES luci-i18n-ttyd-zh-cn"
 PACKAGES="$PACKAGES openssh-sftp-server"
-PACKAGES="$PACKAGES luci-i18n-dockerman-zh-cn"
-# 文件管理器
 PACKAGES="$PACKAGES luci-i18n-filemanager-zh-cn"
-# ======== shell/custom-packages.sh =======
+# ======== shell/custom-packages.sh ========
 # 合并第三方插件
 PACKAGES="$PACKAGES $CUSTOM_PACKAGES"
 
