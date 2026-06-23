@@ -1,8 +1,12 @@
 # iStoreOS QEMU ARM64 Builder
 
+> **⚠️ 本仓库由 DeepSeek V4 Flash 辅助修改，尚未经过充分测试和完善，不推荐使用当前仓库构建镜像。请优先使用下方「直接使用官方 iStoreOS 镜像」方案。**
+
 基于 GitHub Actions 的 iStoreOS QEMU ARM64 虚拟机固件自动构建工作流。
 
 ## 用法
+
+> **⚠️ 不推荐使用本仓库构建镜像，请优先使用上方「直接使用官方 iStoreOS 镜像」方案。**
 
 1. **Fork 本项目**
 2. 进入 Actions 页面，选择 **Build iStoreOS 24.10.x QEMU-armsr-armv8**
