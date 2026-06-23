@@ -242,7 +242,7 @@ chown libvirt-qemu:kvm /var/lib/libvirt/images/immortalwrt.qcow2
 virt-install \
   --name immortalwrt \
   --arch aarch64 \
-  --vcpus 2 \
+  --vcpus 1 \
   --memory 512 \
   --disk path=/var/lib/libvirt/images/immortalwrt.qcow2,format=qcow2,bus=virtio \
   --network bridge=br0,model=virtio \
@@ -259,6 +259,9 @@ virt-install \
 ImmortalWrt 默认 LAN 口 IP 为 `192.168.1.1`，与宿主机不在同一网段时无法直接访问。可通过宿主机添加临时 IP 后 SSH 进入修改：
 
 ```bash
+sudo nmcli connection add type bridge ifname br0
+sudo nmcli connection add type bridge-slave ifname eth0 master br0
+sudo nmcli connection up br0
 # 在宿主机上添加 192.168.1.0/24 网段 IP
 ip addr add 192.168.1.100/24 dev br0
 
@@ -287,6 +290,48 @@ ping -c 3 192.168.8.100
 ```
 
 浏览器访问 `http://192.168.8.100`，用户名 `root`，密码为空。
+
+```
+#关键点：删除使用 UEFI 启动的虚拟机时，必须加上 --nvram 参数，否则会报错。
+#后续维护
+# 1. 删除虚拟机（包括 NVRAM）
+# 1. 先关闭虚拟机（正常关机）
+virsh shutdown immortalwrt
+
+# 如果正常关机不成功，可以强制关机
+virsh destroy immortalwrt
+
+# 2. 删除虚拟机定义（从libvirt管理列表中移除）
+virsh undefine immortalwrt
+virsh undefine immortalwrt --nvram
+
+# 2. 验证是否删除成功
+virsh list --all
+
+# 3. 检查磁盘文件状态
+ls -la /var/lib/libvirt/images/immortalwrt.qcow2
+
+# 4. 如果磁盘文件还在且需要重新使用，可以删除它
+# rm /var/lib/libvirt/images/immortalwrt.qcow2
+
+# 5. 重新创建虚拟机
+virt-install \
+  --name immortalwrt \
+  --arch aarch64 \
+  --vcpus 1 \
+  --memory 512 \
+  --disk path=/var/lib/libvirt/images/immortalwrt.qcow2,format=qcow2,bus=virtio \
+  --network bridge=br0,model=virtio \
+  --import \
+  --boot uefi,firmware.feature.name=secure-boot,firmware.feature.enabled=no \
+  --os-variant linux2024 \
+  --noautoconsole
+
+# 6. 设置开机自动启动
+virsh autostart immortalwrt
+```
+
+
 
 ### 6. 常见问题
 
