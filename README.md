@@ -23,7 +23,48 @@
 
 ## 使用指南
 
-### 一、使用本项目构建的镜像
+### 一、直接使用官方 iStoreOS 镜像（推荐）
+
+**推荐使用此方法**，直接从 iStoreOS 官方下载镜像并转换为 qcow2，稳定可靠。
+
+#### 1. 下载官方镜像
+
+```bash
+wget https://fw0.koolcenter.com/iStoreOS/armsr/istoreos-24.10.7-2026060510-armsr-squashfs-combined-efi.img.gz
+gunzip istoreos-24.10.7-2026060510-armsr-squashfs-combined-efi.img.gz
+```
+
+#### 2. 转换为 qcow2
+
+```bash
+qemu-img convert -f raw -O qcow2 istoreos-24.10.7-2026060510-armsr-squashfs-combined-efi.img istoreos-official.qcow2
+```
+
+#### 3. 创建虚拟机
+
+```bash
+sudo virt-install \
+  --name istoreos \
+  --arch aarch64 \
+  --vcpus 2 \
+  --memory 1024 \
+  --disk path=istoreos-official.qcow2,format=qcow2,bus=virtio \
+  --network bridge=br0,model=virtio \
+  --import \
+  --boot uefi,firmware.feature.name=secure-boot,firmware.feature.enabled=no \
+  --os-variant linux2024 \
+  --noautoconsole
+```
+
+#### 4. 访问管理界面
+
+官方镜像 WAN 口通过 DHCP 获取 IP，在宿主机上执行 `arp -n` 或查看路由器 DHCP 客户端列表找到 VM 的 IP，浏览器访问该 IP，用户名 `root`，密码为空。
+
+---
+
+### 二、使用本项目构建的镜像
+
+> **⚠️ 注意：** 本仓库由 DeepSeek V4 Flash 辅助修改，尚未经过充分测试和完善，**不推荐**使用当前仓库构建镜像。如有构建需求，请优先使用上述官方镜像方案。
 
 #### 1. 安装 KVM 相关组件（Armbian）
 
@@ -72,45 +113,6 @@ sudo qemu-img resize /path/to/istoreos-armsr-armv8-generic-squashfs-combined-efi
 ```
 
 然后在 iStoreOS 内使用 `diskman` 或 `parted` 扩展分区。
-
----
-
-### 二、直接使用官方 iStoreOS 镜像
-
-如果你不想自行构建，可以直接下载 iStoreOS 官方提供的 ARM64 镜像并转换为 qcow2 使用。
-
-#### 1. 下载官方镜像
-
-```bash
-wget https://fw0.koolcenter.com/iStoreOS/armsr/istoreos-24.10.7-2026060510-armsr-squashfs-combined-efi.img.gz
-gunzip istoreos-24.10.7-2026060510-armsr-squashfs-combined-efi.img.gz
-```
-
-#### 2. 转换为 qcow2
-
-```bash
-qemu-img convert -f raw -O qcow2 istoreos-24.10.7-2026060510-armsr-squashfs-combined-efi.img istoreos-official.qcow2
-```
-
-#### 3. 创建虚拟机
-
-```bash
-sudo virt-install \
-  --name istoreos \
-  --arch aarch64 \
-  --vcpus 2 \
-  --memory 1024 \
-  --disk path=istoreos-official.qcow2,format=qcow2,bus=virtio \
-  --network bridge=br0,model=virtio \
-  --import \
-  --boot uefi,firmware.feature.name=secure-boot,firmware.feature.enabled=no \
-  --os-variant linux2024 \
-  --noautoconsole
-```
-
-#### 4. 访问管理界面
-
-官方镜像 WAN 口通过 DHCP 获取 IP，在宿主机上执行 `arp -n` 或查看路由器 DHCP 客户端列表找到 VM 的 IP，浏览器访问该 IP，用户名 `root`，密码为空。
 
 ---
 
