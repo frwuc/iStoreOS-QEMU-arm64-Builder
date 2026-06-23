@@ -200,6 +200,104 @@ qemu-img info image.qcow2
 - **创建虚拟机时必须禁用 Secure Boot**，否则系统无法引导
 - 默认 Rootfs 大小 2048 MB，可在工作流参数中调整
 
+---
+
+## 附录：ImmortalWrt ARM64 虚拟机部署实录
+
+以下记录在 Armbian 宿主机（`192.168.8.12`）上部署 ImmortalWrt 24.10.6 ARM64 虚拟机的完整过程。
+
+### 1. 下载镜像
+
+ImmortalWrt 提供两种 qcow2 镜像格式：
+
+| 类型 | 说明 |
+|------|------|
+| `ext4` | 可扩展读写分区，适合需要调整磁盘大小的场景 |
+| `squashfs` | 压缩只读根文件系统 + overlay，支持恢复出厂设置 |
+
+推荐使用 **squashfs** 版本，文件更小且支持重置功能。
+
+```bash
+# squashfs 版本（推荐，直接下载完整 qcow2 文件）
+wget -O /var/lib/libvirt/images/immortalwrt.qcow2 \
+  https://downloads.immortalwrt.org/releases/24.10.6/targets/armsr/armv8/immortalwrt-24.10.6-armsr-armv8-generic-squashfs-combined-efi.qcow2
+
+# ext4 版本（需要解压后转换）
+wget https://downloads.immortalwrt.org/releases/24.10.6/targets/armsr/armv8/immortalwrt-24.10.6-armsr-armv8-generic-ext4-combined-efi.img.gz
+gunzip immortalwrt-24.10.6-armsr-armv8-generic-ext4-combined-efi.img.gz
+qemu-img convert -f raw -O qcow2 immortalwrt-24.10.6-armsr-armv8-generic-ext4-combined-efi.img /var/lib/libvirt/images/immortalwrt.qcow2
+```
+
+### 2. 创建虚拟机
+
+```bash
+# 停止并删除旧虚拟机（如有）
+virsh destroy immortalwrt 2>/dev/null
+virsh undefine immortalwrt --nvram 2>/dev/null
+
+# 设置镜像权限
+chown libvirt-qemu:kvm /var/lib/libvirt/images/immortalwrt.qcow2
+
+# 创建新虚拟机
+virt-install \
+  --name immortalwrt \
+  --arch aarch64 \
+  --vcpus 2 \
+  --memory 512 \
+  --disk path=/var/lib/libvirt/images/immortalwrt.qcow2,format=qcow2,bus=virtio \
+  --network bridge=br0,model=virtio \
+  --import \
+  --boot uefi,firmware.feature.name=secure-boot,firmware.feature.enabled=no \
+  --os-variant linux2024 \
+  --noautoconsole
+```
+
+> **重要：** `firmware.feature.enabled=no` 必须指定，否则 Secure Boot 默认启用，ARM64 上 OpenWrt/ImmortalWrt 无法引导。
+
+### 3. 查找虚拟机 IP
+
+ImmortalWrt 默认 LAN 口 IP 为 `192.168.1.1`，与宿主机不在同一网段时无法直接访问。可通过宿主机添加临时 IP 后 SSH 进入修改：
+
+```bash
+# 在宿主机上添加 192.168.1.0/24 网段 IP
+ip addr add 192.168.1.100/24 dev br0
+
+# 验证虚拟机是否启动（ping 默认 LAN IP）
+ping -c 3 192.168.1.1
+
+# SSH 登录虚拟机（密码为空）
+ssh root@192.168.1.1
+```
+
+### 4. 修改 LAN IP 至宿主机网段
+
+```bash
+# 在虚拟机内执行
+uci set network.lan.ipaddr=192.168.8.100
+uci commit network
+reboot
+```
+
+重启后即可通过 `192.168.8.100` 访问虚拟机管理界面。
+
+### 5. 验证
+
+```bash
+ping -c 3 192.168.8.100
+```
+
+浏览器访问 `http://192.168.8.100`，用户名 `root`，密码为空。
+
+### 6. 常见问题
+
+| 问题 | 原因 | 解决 |
+|------|------|------|
+| 虚拟机无 DHCP 请求 | Secure Boot 未禁用 | 创建时添加 `firmware.feature.enabled=no` |
+| 找不到虚拟机 IP | 默认 LAN 在不同网段 | 在宿主机添加对应网段 IP 后 SSH 修改 |
+| 镜像无法引导 | 镜像格式不完整 | 使用 squashfs 版本（完整 qcow2）而非 ext4 gz 压缩包 |
+
+---
+
 ## 致谢
 
 本项目修改自 [wukongdaily/ImmortalWrt-ImageBuilder](https://github.com/wukongdaily/ImmortalWrt-ImageBuilder)，在其基础上适配了 iStoreOS ImageBuilder 构建流程。
